@@ -36,7 +36,7 @@ process. Allowed configuration options:
 | previewDeploymentPostfix | The base part of the app url, e.g. `app.staging.pleo.io`. Only applicable in staging.                                             | `string`             | n/a      |   yes    |
 | defaultBranchName        | The name of the default branch of the repo that deploys the app                                                                   | `string`             | `master` |    no    |
 | blockIframes             | Should the `X-Frame-Options` custom header be added to block rendering of the app in iframes?                                     | `bool`               | `false`  |    no    |
-| isLocalised             | Should fetch translation hash and add cookie & preload header for translation files?                                     | `bool`               | `false`  |    no    |
+| isLocalised              | Should fetch translation hash and add cookie & preload header for translation files?                                              | `bool`               | `false`  |    no    |
 
 ### Details
 
@@ -107,6 +107,14 @@ exposing some information under a consistent URL across all websites (e.g.
 `.well-known/apple-app-site-association`). These are handled in a special way by this module, and
 should work as expected if placed in the `.well-known` directory (and not in `/static`) when
 uploaded to S3.
+
+#### Translations
+
+Support for separately served translations can be achieved using the `isLocalised` config option.
+When enabled, the viewer request lambda will fetch the latest version of the translations from S3
+(from a cursor file assumed present at `translation-deploy/latest` key in the origin bucket), and
+pass it to the viewer response lambda which exposes it via a cookie on the response. For more
+details see the `addons/translations.ts` file.
 
 ### Usage
 

@@ -1,44 +1,54 @@
+import crypto from 'crypto'
 import {CloudFrontResponseEvent} from 'aws-lambda'
 import {getHandler} from './viewer-response'
 
-describe(`Viewer response Lambda@Edge`, () => {
-    test(`Adds security and cache control custom headers to a response object for prod`, async () => {
-        const handler = getHandler({
-            originBucketName: 'test-cursor-bucket-prod',
-            originBucketRegion: 'eu-west-1',
-            isLocalised: 'true'
-        })
+const originConfig = {
+    originBucketName: 'test-cursor-bucket',
+    originBucketRegion: 'eu-west-1'
+}
+const mockContext = {} as any
+const mockCallback = () => {}
 
+describe(`Viewer response Lambda@Edge`, () => {
+    test(`
+        When processing a response for the default branch
+        Then it adds security custom header to the response
+        And it adds cache control custom header to the response
+    `, async () => {
         const event = mockResponseEvent({host: 'app.example.com'})
-        expect(await handler(event, {} as any, () => {})).toEqual({
+
+        const handler = getHandler(originConfig)
+        const response = await handler(event, mockContext, mockCallback)
+
+        expect(response).toEqual({
             headers: {
                 ...securityHeaders,
                 ...cacheControlHeaders,
-                ...defaultHeaders,
-                ...getHeaderBasedOnHash()
+                ...defaultHeaders
             },
             status: '200',
             statusDescription: 'OK'
         })
     })
 
-    test(`Adds robots custom headers to a response object if configured`, async () => {
-        const handler = getHandler({
-            originBucketName: 'test-origin-bucket-staging',
-            originBucketRegion: 'eu-west-1',
-            previewDeploymentPostfix: '.app.staging.example.com',
-            blockRobots: 'true',
-            isLocalised: 'true'
-        })
-
+    test(`
+        When blocking robots is turned on
+        Then it adds robots custom header to the response
+    `, async () => {
         const event = mockResponseEvent({host: 'app.staging.example.com'})
 
-        expect(await handler(event, {} as any, () => {})).toEqual({
+        const handler = getHandler({
+            ...originConfig,
+            previewDeploymentPostfix: '.app.staging.example.com',
+            blockRobots: 'true'
+        })
+        const response = await handler(event, mockContext, mockCallback)
+
+        expect(response).toEqual({
             headers: {
                 ...securityHeaders,
                 ...defaultHeaders,
                 ...cacheControlHeaders,
-                ...getHeaderBasedOnHash(),
                 'x-robots-tag': [{key: 'X-Robots-Tag', value: 'noindex, nofollow'}]
             },
             status: '200',
@@ -46,67 +56,20 @@ describe(`Viewer response Lambda@Edge`, () => {
         })
     })
 
-    test(`Adds security with frame blocking custom header to a response if configured`, async () => {
-        const handler = getHandler({
-            originBucketName: 'test-origin-bucket',
-            originBucketRegion: 'eu-west-1',
-            previewDeploymentPostfix: '.app.example.com',
-            blockIframes: 'true',
-            isLocalised: 'true'
-        })
-
+    test(`
+        When blocking iFrames is turned on
+        Then it adds frame blocking custom header to the response
+    `, async () => {
         const event = mockResponseEvent({host: 'app.staging.example.com'})
 
-        expect(await handler(event, {} as any, () => {})).toEqual({
-            headers: {
-                ...securityHeaders,
-                'x-frame-options': [{key: 'X-Frame-Options', value: 'DENY'}],
-                ...defaultHeaders,
-                ...cacheControlHeaders,
-                ...getHeaderBasedOnHash()
-            },
-            status: '200',
-            statusDescription: 'OK'
-        })
-    })
-
-    test(`Add preload headers and update hash value for 'translation-hash' cookie`, async () => {
-        const hash = '123123'
         const handler = getHandler({
-            originBucketName: 'test-origin-bucket',
-            originBucketRegion: 'eu-west-1',
+            ...originConfig,
             previewDeploymentPostfix: '.app.example.com',
-            blockIframes: 'true',
-            isLocalised: 'true'
+            blockIframes: 'true'
         })
+        const response = await handler(event, mockContext, mockCallback)
 
-        const event = mockResponseEvent({host: 'app.staging.example.com', hash})
-
-        expect(await handler(event, {} as any, () => {})).toEqual({
-            headers: {
-                ...securityHeaders,
-                'x-frame-options': [{key: 'X-Frame-Options', value: 'DENY'}],
-                ...defaultHeaders,
-                ...cacheControlHeaders,
-                ...getHeaderBasedOnHash(hash)
-            },
-            status: '200',
-            statusDescription: 'OK'
-        })
-    })
-
-    test(`No preload headers and no update hash value for 'translation-hash' cookie when isLocalised='false'`, async () => {
-        const handler = getHandler({
-            originBucketName: 'test-origin-bucket',
-            originBucketRegion: 'eu-west-1',
-            previewDeploymentPostfix: '.app.example.com',
-            blockIframes: 'true',
-            isLocalised: 'false'
-        })
-
-        const event = mockResponseEvent({host: 'app.staging.example.com'})
-
-        expect(await handler(event, {} as any, () => {})).toEqual({
+        expect(response).toEqual({
             headers: {
                 ...securityHeaders,
                 'x-frame-options': [{key: 'X-Frame-Options', value: 'DENY'}],
@@ -118,81 +81,210 @@ describe(`Viewer response Lambda@Edge`, () => {
         })
     })
 
-    test(`Add preload headers and update hash value from tree hash for en instead of 'translation-hash'`, async () => {
-        const hash = '123123'
-        const translationHash = '456456'
-        const handler = getHandler({
-            originBucketName: 'test-origin-bucket',
-            originBucketRegion: 'eu-west-1',
-            previewDeploymentPostfix: '.app.example.com',
-            blockIframes: 'true',
-            isLocalised: 'true'
-        })
-
-        const event = mockResponseEvent({host: 'app.staging.example.com', hash, translationHash})
-
-        expect(await handler(event, {} as any, () => {})).toEqual({
-            headers: {
-                ...securityHeaders,
-                'x-frame-options': [{key: 'X-Frame-Options', value: 'DENY'}],
-                ...defaultHeaders,
-                ...cacheControlHeaders,
-                ...getHeaderBasedOnHash(hash, translationHash)
-            },
-            status: '200',
-            statusDescription: 'OK'
-        })
-    })
-
-    test(`Add preload headers and update hash value for 'translation-hash' cookie with da language from cookie 'x-pleo-language'`, async () => {
-        const hash = '123123'
-        const handler = getHandler({
-            originBucketName: 'test-origin-bucket',
-            originBucketRegion: 'eu-west-1',
-            previewDeploymentPostfix: '.app.example.com',
-            blockIframes: 'true',
-            isLocalised: 'true'
-        })
-
-        const event = mockResponseEvent({host: 'app.staging.example.com', hash, language: 'da'})
-
-        expect(await handler(event, {} as any, () => {})).toEqual({
-            headers: {
-                ...securityHeaders,
-                'x-frame-options': [{key: 'X-Frame-Options', value: 'DENY'}],
-                ...defaultHeaders,
-                ...cacheControlHeaders,
-                ...getHeaderBasedOnHash(hash, hash, 'da')
-            },
-            status: '200',
-            statusDescription: 'OK'
-        })
-    })
-
-    test(`Add preload headers and update hash value for 'translation-hash' cookie with da language from url param 'lang'`, async () => {
-        const hash = '123123'
-        const handler = getHandler({
-            originBucketName: 'test-origin-bucket',
-            originBucketRegion: 'eu-west-1',
-            previewDeploymentPostfix: '.app.example.com',
-            blockIframes: 'true',
-            isLocalised: 'true'
-        })
-
+    test(`
+        When the translations addon is on
+        And there is no language cookie or param
+        Then it adds a preload header using the app version and default language
+        And it adds a translation cookie using the translation version
+    `, async () => {
+        const appVersion = getRandomSha()
+        const translationVersion = getRandomInt()
         const event = mockResponseEvent({
             host: 'app.staging.example.com',
-            hash,
-            language: 'da',
-            isCookieForLanguage: false
+            translations: {appVersion, translationVersion}
         })
 
-        expect(await handler(event, {} as any, () => {})).toEqual({
+        const handler = getHandler({
+            ...originConfig,
+            previewDeploymentPostfix: '.app.example.com',
+            isLocalised: 'true'
+        })
+        const response = await handler(event, mockContext, mockCallback)
+
+        expect(response).toEqual({
+            headers: {
+                ...securityHeaders,
+                ...defaultHeaders,
+                ...cacheControlHeaders,
+                ...getTranslationHeaders({
+                    cookieHash: translationVersion,
+                    preloadHash: appVersion,
+                    language: 'en'
+                })
+            },
+            status: '200',
+            statusDescription: 'OK'
+        })
+    })
+
+    test(`
+        When the translation module is off
+        Then it does not add a preload header 
+        And it does not add a translation cookie
+    `, async () => {
+        const event = mockResponseEvent({host: 'app.staging.example.com'})
+
+        const handler = getHandler({
+            ...originConfig,
+            previewDeploymentPostfix: '.app.example.com',
+            isLocalised: 'false'
+        })
+        const response = await handler(event, mockContext, mockCallback)
+
+        expect(response).toEqual({
+            headers: {
+                ...securityHeaders,
+                ...defaultHeaders,
+                ...cacheControlHeaders
+            },
+            status: '200',
+            statusDescription: 'OK'
+        })
+    })
+
+    test(`
+        When a custom language is set via a cookie
+        Then it adds a preload header using the translation version
+        And the custom language is used for the preload header
+        And it adds a translation cookie using the translation version
+    `, async () => {
+        const appVersion = getRandomSha()
+        const translationVersion = getRandomInt()
+        const event = mockResponseEvent({
+            host: 'app.staging.example.com',
+            translations: {appVersion, translationVersion},
+            languageForCookie: 'da'
+        })
+
+        const handler = getHandler({
+            ...originConfig,
+            previewDeploymentPostfix: '.app.example.com',
+            isLocalised: 'true'
+        })
+        const response = await handler(event, mockContext, mockCallback)
+
+        expect(response).toEqual({
+            headers: {
+                ...securityHeaders,
+                ...defaultHeaders,
+                ...cacheControlHeaders,
+                ...getTranslationHeaders({
+                    cookieHash: translationVersion,
+                    preloadHash: translationVersion,
+                    language: 'da'
+                })
+            },
+            status: '200',
+            statusDescription: 'OK'
+        })
+    })
+
+    test(`
+        When a default language is set via a cookie
+        Then it adds a preload header using the app version
+        And it adds a translation cookie using the translation version
+    `, async () => {
+        const appVersion = getRandomSha()
+        const translationVersion = getRandomInt()
+        const event = mockResponseEvent({
+            host: 'app.staging.example.com',
+            translations: {appVersion, translationVersion},
+            languageForCookie: 'en'
+        })
+
+        const handler = getHandler({
+            ...originConfig,
+            previewDeploymentPostfix: '.app.example.com',
+            isLocalised: 'true'
+        })
+        const response = await handler(event, mockContext, mockCallback)
+
+        expect(response).toEqual({
+            headers: {
+                ...securityHeaders,
+                ...defaultHeaders,
+                ...cacheControlHeaders,
+                ...getTranslationHeaders({
+                    cookieHash: translationVersion,
+                    preloadHash: appVersion,
+                    language: 'en'
+                })
+            },
+            status: '200',
+            statusDescription: 'OK'
+        })
+    })
+
+    test(`
+        When a custom language is selected via a query parameter
+        Then it adds a preload header for that language
+    `, async () => {
+        const appVersion = getRandomSha()
+        const translationVersion = getRandomInt()
+        const event = mockResponseEvent({
+            host: 'app.staging.example.com',
+            translations: {appVersion, translationVersion},
+            languageForParam: 'da'
+        })
+
+        const handler = getHandler({
+            ...originConfig,
+            previewDeploymentPostfix: '.app.example.com',
+            blockIframes: 'true',
+            isLocalised: 'true'
+        })
+        const response = await handler(event, mockContext, mockCallback)
+
+        expect(response).toEqual({
             headers: {
                 ...securityHeaders,
                 'x-frame-options': [{key: 'X-Frame-Options', value: 'DENY'}],
                 ...defaultHeaders,
                 ...cacheControlHeaders,
-                ...getHeaderBasedOnHash(hash, hash, 'da')
+                ...getTranslationHeaders({
+                    cookieHash: translationVersion,
+                    preloadHash: translationVersion,
+                    language: 'da'
+                })
+            },
+            status: '200',
+            statusDescription: 'OK'
+        })
+    })
+
+    test(`
+        When a custom language is selected via a query parameter
+        And a custom language is selected via a cookie
+        Then it adds a preload header for the query param language
+    `, async () => {
+        const appVersion = getRandomSha()
+        const translationVersion = getRandomInt()
+        const event = mockResponseEvent({
+            host: 'app.staging.example.com',
+            translations: {appVersion, translationVersion},
+            languageForParam: 'da',
+            languageForCookie: 'fr'
+        })
+
+        const handler = getHandler({
+            ...originConfig,
+            previewDeploymentPostfix: '.app.example.com',
+            blockIframes: 'true',
+            isLocalised: 'true'
+        })
+        const response = await handler(event, mockContext, mockCallback)
+
+        expect(response).toEqual({
+            headers: {
+                ...securityHeaders,
+                'x-frame-options': [{key: 'X-Frame-Options', value: 'DENY'}],
+                ...defaultHeaders,
+                ...cacheControlHeaders,
+                ...getTranslationHeaders({
+                    cookieHash: translationVersion,
+                    preloadHash: translationVersion,
+                    language: 'da'
+                })
             },
             status: '200',
             statusDescription: 'OK'
@@ -220,42 +312,53 @@ const cacheControlHeaders = {
     ]
 }
 
-const getHeaderBasedOnHash = (hash = undefined, translationHash = hash, language = 'en') => {
+const getTranslationHeaders = ({
+    cookieHash,
+    preloadHash,
+    language
+}: {
+    cookieHash: string
+    preloadHash: string
+    language: string
+}) => {
     return {
         'set-cookie': [
             {
                 key: 'Set-Cookie',
-                value: `translation-hash=${translationHash}`
+                value: `translation-version=${cookieHash}`
             }
         ],
-        link: Boolean(hash)
+        link: Boolean(preloadHash)
             ? [
                   {
                       key: 'Link',
-                      value: `</static/translations/${language}/messages.${hash}.js>; rel="preload"; as="script"`
+                      value: `</static/translations/${language}/messages.${preloadHash}.js>; rel="preload"; as="script"`
                   }
               ]
             : undefined
     }
 }
 
-// Returns a mock Cloudfront viewer response event with the specified host and URI. See
-// https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/lambda-event-structure.html#lambda-event-structure-response-viewer for
-// more info on the shape of the response events for Edge Lambdas
+/**
+ * Returns a mock Cloudfront viewer response event with the specified host and URI
+ * For more info on the shape of the response events for Edge Lambdas
+ * @see https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/lambda-event-structure.html#lambda-event-structure-response-viewer
+ */
 export const mockResponseEvent = ({
     host,
-    hash,
-    translationHash = hash,
+    translations,
     uri = '/',
-    language,
-    isCookieForLanguage = true
+    languageForCookie,
+    languageForParam
 }: {
     host: string
-    hash?: string
-    translationHash?: string
+    translations?: {
+        appVersion: string
+        translationVersion?: string
+    }
     uri?: string
-    language?: string
-    isCookieForLanguage?: boolean
+    languageForCookie?: string
+    languageForParam?: string
 }): CloudFrontResponseEvent => ({
     Records: [
         {
@@ -275,29 +378,32 @@ export const mockResponseEvent = ({
                                 value: host
                             }
                         ],
-                        'x-translation-cursor': [
-                            {
-                                key: 'X-Translation-Cursor',
-                                value: translationHash
-                            }
-                        ],
-                        'x-tree-hash': [
-                            {
-                                key: 'X-Translation-Cursor',
-                                value: hash
-                            }
-                        ],
-                        cookie:
-                            language && isCookieForLanguage
-                                ? [
+                        ...(translations
+                            ? {
+                                  'x-translation-version': [
                                       {
-                                          key: 'Cookie',
-                                          value: `x-pleo-language=${language}`
+                                          key: 'X-Translation-Version',
+                                          value: translations.translationVersion
+                                      }
+                                  ],
+                                  'x-app-version': [
+                                      {
+                                          key: 'X-App-Version',
+                                          value: translations.appVersion
                                       }
                                   ]
-                                : undefined
+                              }
+                            : {}),
+                        cookie: languageForCookie
+                            ? [
+                                  {
+                                      key: 'Cookie',
+                                      value: `x-pleo-language=${languageForCookie}`
+                                  }
+                              ]
+                            : undefined
                     },
-                    querystring: language && !isCookieForLanguage ? `?lang=${language}` : '',
+                    querystring: languageForParam ? `?lang=${languageForParam}` : '',
                     clientIp: '203.0.113.178',
                     method: 'GET'
                 },
@@ -310,3 +416,6 @@ export const mockResponseEvent = ({
         }
     ]
 })
+
+const getRandomSha = () => crypto.randomBytes(20).toString('hex')
+const getRandomInt = () => crypto.randomInt(100000, 199999).toString()
