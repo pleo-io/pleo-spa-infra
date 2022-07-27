@@ -153,6 +153,15 @@ function fetchFileFromS3Bucket(key, bucket, s3) {
 }
 
 ;// CONCATENATED MODULE: ./src/addons/translations.ts
+/**
+ * This addon adds the translations functionality to the SPA served. It uses a secondary cursor deployment.
+ * The latest version of translations is fetched when the HTML requested by the browser (at the same time as
+ * the latest version of the app is served). Then that version is returned together with the HTML response
+ * via a cookie header.
+ * Additionally, to improve performance, a preload link header is added to the HTML response to trigger fetching
+ * of the message catalog as soon as possible, without having to wait for the app JS to be downloaded, parsed
+ * and executed before making a request for the message catalog.
+ */
 var translations_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -169,15 +178,6 @@ const DEFAULT_LANGUAGE = 'en';
 const LANG_QUERY_PARAM = 'lang';
 const LANG_COOKIE_NAME = 'x-pleo-language';
 const TRANSLATION_VERSION_COOKIE_NAME = 'translation-version';
-/**
- * This addon adds the translations functionality to the SPA served. It uses a secondary cursor deployment.
- * The latest version of translations is fetched when the HTML requested by the browser (at the same time as
- * the latest version of the app is served). Then that version is returned together with the HTML response
- * via a cookie header.
- * Additionally, to improve performance, a preload link header is added to the HTML response to trigger fetching
- * of the message catalog as soon as possible, without having to wait for the app JS to be downloaded, parsed
- * and executed before making a request for the message catalog.
- */
 /**
  * Modifies the response object to enrich it with headers used to serve translations for the app.
  */
@@ -218,7 +218,7 @@ function addTranslationInfoToRequest({ request, translationVersion, appVersion, 
  */
 const setTranslationVersionCookie = (response, translationVersion) => {
     let headers = response.headers;
-    headers = setHeader(headers, 'Set-Cookie', `${TRANSLATION_VERSION_COOKIE_NAME}=${translationVersion}`);
+    headers = setHeader(headers, 'Set-Cookie', `${TRANSLATION_VERSION_COOKIE_NAME}=${translationVersion}`, { merge: true });
     return Object.assign(Object.assign({}, response), { headers });
 };
 /**
@@ -332,7 +332,7 @@ function getHandler(config, s3) {
 /**
  * We respond with a requested file, but prefix it with the hash of the current active deployment
  */
-function getUri(request, treeHash) {
+function getUri(request, appVersion) {
     // If the
     // - request uri is for a specific file (e.g. "/iframe.html")
     // - or is a request on one of the .well-known paths (like .well-known/apple-app-site-association)
@@ -342,7 +342,7 @@ function getUri(request, treeHash) {
     const isFileRequest = request.uri.split('/').pop().includes('.');
     const isWellKnownRequest = request.uri.startsWith('/.well-known/');
     const filePath = isFileRequest || isWellKnownRequest ? request.uri : '/index.html';
-    return external_path_namespaceObject.join('/html', treeHash, filePath);
+    return external_path_namespaceObject.join('/html', appVersion, filePath);
 }
 /**
  * Calculate the version of the app that should be served.
@@ -350,16 +350,13 @@ function getUri(request, treeHash) {
  * version for a branch requested (preview or main), which we fetch from cursor files stored in S3
  */
 function getAppVersion(request, config, s3) {
-    var _a;
+    var _a, _b;
     return viewer_request_awaiter(this, void 0, void 0, function* () {
-        const host = utils_getHeader(request, 'host');
-        if (!host) {
-            throw new Error('Missing Host header');
-        }
+        const host = (_a = utils_getHeader(request, 'host')) !== null && _a !== void 0 ? _a : null;
         // Preview name is the first segment of the url e.g. my-branch for my-branch.app.staging.example.com
         // Preview name is either a sanitized branch name or it follows the preview-[hash] pattern
         let previewName;
-        if (config.previewDeploymentPostfix && host.includes(config.previewDeploymentPostfix)) {
+        if (config.previewDeploymentPostfix && host && host.includes(config.previewDeploymentPostfix)) {
             previewName = host.split('.')[0];
             // If the request is for a specific hash of a preview deployment, we use that hash
             const previewHash = getPreviewHash(previewName);
@@ -367,7 +364,7 @@ function getAppVersion(request, config, s3) {
                 return previewHash;
             }
         }
-        const defaultBranchName = (_a = config.defaultBranchName) !== null && _a !== void 0 ? _a : DEFAULT_BRANCH_DEFAULT_NAME;
+        const defaultBranchName = (_b = config.defaultBranchName) !== null && _b !== void 0 ? _b : DEFAULT_BRANCH_DEFAULT_NAME;
         // Otherwise we fetch the current app version for requested branch from S3
         const branchName = previewName || defaultBranchName;
         return fetchAppVersion(branchName, config, s3);
@@ -403,9 +400,11 @@ function fetchAppVersion(branch, config, s3) {
 
 
 const config = getConfig();
-// Note that in order to optimise performance, we're using a persistent connection created
-// in global scope of this Edge Lambda. See https://aws.amazon.com/blogs/networking-and-content-delivery/leveraging-external-data-in-lambdaedge
-// for more details.
+/**
+ * Note that in order to optimize performance, we're using a persistent connection created
+ * in global scope of this Edge Lambda. For more details
+ * @see https://aws.amazon.com/blogs/networking-and-content-delivery/leveraging-external-data-in-lambdaedge
+ */
 const keepAliveAgent = new external_https_namespaceObject.Agent({ keepAlive: true });
 const s3 = new (s3_default())({
     region: config.originBucketRegion,

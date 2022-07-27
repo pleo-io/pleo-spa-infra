@@ -62,8 +62,8 @@ behavior which they are associated with.
         (`my-branch`) version of the app, and a request to
         `preview-{version}.app.staging.example.com` is a request for a specific version.
 
-    2. Based on the above, fetch the cursor file (containing the current active tree hash) from the
-       S3 origin bucket to figure out which HTML file to request from CDN. The cursor file is
+    2. Based on the above, fetch the cursor file (containing the current active app version) from
+       the S3 origin bucket to figure out which HTML file to request from CDN. The cursor file is
        updated as part of the [CD pipeline](https://github.com/pleo-oss/pleo-spa-cicd).
 
         For example, for the main branch requested we would fetch `deploys/main` file from S3, and
@@ -79,8 +79,8 @@ behavior which they are associated with.
         > discussion of this topic please see
         > [AWS's guide to using external data in Edge Lambda](https://aws.amazon.com/blogs/networking-and-content-delivery/leveraging-external-data-in-lambdaedge).
 
-    3. Once the tree hash is established, the request object is modified to fetch the right version
-       of the file from the origin bucket.
+    3. Once the app version is established, the request object is modified to fetch the right
+       version of the file from the origin bucket.
 
         For example, we might modify the request to fetch
         `/html/ce4a66492551f1cd2fad5296ee94b8ea2667eac3/index.html` following the example above.

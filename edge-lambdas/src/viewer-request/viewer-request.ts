@@ -64,7 +64,7 @@ export function getHandler(config: Config, s3: S3) {
 /**
  * We respond with a requested file, but prefix it with the hash of the current active deployment
  */
-function getUri(request: CloudFrontRequest, treeHash: string) {
+function getUri(request: CloudFrontRequest, appVersion: string) {
     // If the
     // - request uri is for a specific file (e.g. "/iframe.html")
     // - or is a request on one of the .well-known paths (like .well-known/apple-app-site-association)
@@ -75,7 +75,7 @@ function getUri(request: CloudFrontRequest, treeHash: string) {
     const isWellKnownRequest = request.uri.startsWith('/.well-known/')
     const filePath = isFileRequest || isWellKnownRequest ? request.uri : '/index.html'
 
-    return path.join('/html', treeHash, filePath)
+    return path.join('/html', appVersion, filePath)
 }
 
 /**

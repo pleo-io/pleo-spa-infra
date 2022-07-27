@@ -132,7 +132,7 @@ describe(`Viewer request Lambda@Edge`, () => {
 
     test(`
         When requesting a specific version i.e. preview-{appVersion}.app.staging.example.com
-        it modifies the request to fetch the HTML for that tree hash
+        it modifies the request to fetch the HTML for that app version
     `, async () => {
         const appVersion = getRandomSha()
         const requestedAppVersion = getRandomSha()
