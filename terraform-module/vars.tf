@@ -31,7 +31,7 @@ variable "block_iframes" {
 
 variable "is_localised" {
   description = "Should fetch translation hash and add cookie & preload header for translation files?"
-  default     = true
+  default     = false
   type        = bool
 }
 
