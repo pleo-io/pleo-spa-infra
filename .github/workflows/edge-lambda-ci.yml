@@ -16,14 +16,14 @@ defaults:
 jobs:
   ci:
     name: Check Lambda@Edge Functions
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v2.4.0
-      - uses: actions/setup-node@v2.5.1
+      - uses: actions/checkout@v3.0.2
+      - uses: actions/setup-node@v3.4.1
         with:
-          node-version: "16"
+          node-version: "16.x"
           cache: "yarn"
           cache-dependency-path: edge-lambdas/yarn.lock
 
