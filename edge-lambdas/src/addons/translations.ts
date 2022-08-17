@@ -99,7 +99,7 @@ export const setTranslationVersionCookie = (
  * Adds preload header for translation file to speed up rendering of the app. It's crucial to fetch the
  * translations file as soon as possible, since we can't render anything without the translated messages.
  *
- * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Link_types/preload
+ * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Link_types/preload and https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Link
  *
  * The file we ask the browser to pre-fetch is our best guess based on:
  * - the language query param sometimes set on redirects to the app - this takes precedence
