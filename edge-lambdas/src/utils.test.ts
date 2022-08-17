@@ -1,9 +1,7 @@
 import {getCookie} from './utils'
 
 describe(`getCookie`, () => {
-    test(`
-        default run
-    `, async () => {
+    test(`default run`, async () => {
         const pleoAbUniqueIdValue = 'FSf7ljORURe556Kk8-KOL'
         const value = getCookie(
             {
@@ -20,9 +18,7 @@ describe(`getCookie`, () => {
         expect(value).toBe(pleoAbUniqueIdValue)
     })
 
-    test(`
-    empty cookie header
-`, async () => {
+    test(`empty cookie header`, async () => {
         const value = getCookie(
             {
                 cookie: undefined
@@ -56,9 +52,7 @@ describe(`getCookie`, () => {
         expect(valueWithEmptyCookieValue).toBe(null)
     })
 
-    test(`
-    return null with no cookie with such name
-`, async () => {
+    test(`return null with no cookie with such name`, async () => {
         const pleoAbUniqueIdValue = 'FSf7ljORURe556Kk8-KOL'
         const value = getCookie(
             {
