@@ -225,7 +225,7 @@ const setTranslationVersionCookie = (response, translationVersion) => {
  * Adds preload header for translation file to speed up rendering of the app. It's crucial to fetch the
  * translations file as soon as possible, since we can't render anything without the translated messages.
  *
- * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Link_types/preload
+ * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Link_types/preload and https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Link
  *
  * The file we ask the browser to pre-fetch is our best guess based on:
  * - the language query param sometimes set on redirects to the app - this takes precedence
@@ -260,7 +260,7 @@ const getTranslationVersion = (s3, config) => translations_awaiter(void 0, void 
         return response;
     }
     catch (error) {
-        console.error(error);
+        console.error('getTranslationVersion failed', error);
         // We never want this function to throw to avoid the app failing on any issues with the translations
         // deployments. We return an empty translation version here, which means the app will fall back to the
         // default language (which uses the app version instead of the translations version)
