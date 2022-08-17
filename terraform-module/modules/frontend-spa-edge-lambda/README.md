@@ -15,6 +15,7 @@ module "lambda" {
   domain_name              = "hello.example.com"
   default_repo_branch_name = "master"
   block_iframes            = true
+  is_localised             = true
   role_arn                 = module.lambda_role.role_arn
   lambda_version           = var.lambdas_version
   bucket_name              = module.s3.bucket_name
@@ -75,6 +76,7 @@ No modules.
 | <a name="input_domain_name"></a> [domain\_name](#input\_domain\_name) | App domain name | `string` | n/a | yes |
 | <a name="input_env"></a> [env](#input\_env) | Environment (production/staging) | `string` | n/a | yes |
 | <a name="input_event_type"></a> [event\_type](#input\_event\_type) | Type of the Lambda@Edge (viewer-request, viewer-response, origin-request, origin-response) | `string` | n/a | yes |
+| <a name="input_is_localised"></a> [is\_localised](#input\_is\_localised) | Should fetch translation hash and add cookie & preload header for translation files? | `bool` | `true` | no |
 | <a name="input_role_arn"></a> [role\_arn](#input\_role\_arn) | ARN of the lambda execution role | `string` | n/a | yes |
 
 #### Outputs

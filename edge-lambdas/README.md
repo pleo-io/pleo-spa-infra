@@ -36,6 +36,7 @@ process. Allowed configuration options:
 | previewDeploymentPostfix | The base part of the app url, e.g. `app.staging.pleo.io`. Only applicable in staging.                                             | `string`             | n/a      |   yes    |
 | defaultBranchName        | The name of the default branch of the repo that deploys the app                                                                   | `string`             | `master` |    no    |
 | blockIframes             | Should the `X-Frame-Options` custom header be added to block rendering of the app in iframes?                                     | `bool`               | `false`  |    no    |
+| isLocalised              | Should fetch translation hash and add cookie & preload header for translation files?                                              | `bool`               | `false`  |    no    |
 
 ### Details
 
@@ -61,8 +62,8 @@ behavior which they are associated with.
         (`my-branch`) version of the app, and a request to
         `preview-{version}.app.staging.example.com` is a request for a specific version.
 
-    2. Based on the above, fetch the cursor file (containing the current active tree hash) from the
-       S3 origin bucket to figure out which HTML file to request from CDN. The cursor file is
+    2. Based on the above, fetch the cursor file (containing the current active app version) from
+       the S3 origin bucket to figure out which HTML file to request from CDN. The cursor file is
        updated as part of the [CD pipeline](https://github.com/pleo-oss/pleo-spa-cicd).
 
         For example, for the main branch requested we would fetch `deploys/main` file from S3, and
@@ -78,8 +79,8 @@ behavior which they are associated with.
         > discussion of this topic please see
         > [AWS's guide to using external data in Edge Lambda](https://aws.amazon.com/blogs/networking-and-content-delivery/leveraging-external-data-in-lambdaedge).
 
-    3. Once the tree hash is established, the request object is modified to fetch the right version
-       of the file from the origin bucket.
+    3. Once the app version is established, the request object is modified to fetch the right
+       version of the file from the origin bucket.
 
         For example, we might modify the request to fetch
         `/html/ce4a66492551f1cd2fad5296ee94b8ea2667eac3/index.html` following the example above.
@@ -106,6 +107,14 @@ exposing some information under a consistent URL across all websites (e.g.
 `.well-known/apple-app-site-association`). These are handled in a special way by this module, and
 should work as expected if placed in the `.well-known` directory (and not in `/static`) when
 uploaded to S3.
+
+#### Translations
+
+Support for separately served translations can be achieved using the `isLocalised` config option.
+When enabled, the viewer request lambda will fetch the latest version of the translations from S3
+(from a cursor file assumed present at `translation-deploy/latest` key in the origin bucket), and
+pass it to the viewer response lambda which exposes it via a cookie on the response. For more
+details see the `addons/translations.ts` file.
 
 ### Usage
 

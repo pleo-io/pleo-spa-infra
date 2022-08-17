@@ -1,5 +1,6 @@
 import {CloudFrontResponse, CloudFrontResponseHandler} from 'aws-lambda'
 import {Config} from '../config'
+import {addTranslationInfoToResponse} from '../addons/translations'
 import {setHeader} from '../utils'
 
 /**
@@ -14,10 +15,12 @@ import {setHeader} from '../utils'
 export function getHandler(config: Config) {
     const handler: CloudFrontResponseHandler = async (event) => {
         let response = event.Records[0].cf.response
+        const request = event.Records[0].cf.request
 
         response = addSecurityHeaders(response, config)
         response = addCacheHeader(response)
         response = addRobotsHeader(response, config)
+        response = addTranslationInfoToResponse(response, request, config)
 
         return response
     }
