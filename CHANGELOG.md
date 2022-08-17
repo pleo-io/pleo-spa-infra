@@ -1,3 +1,10 @@
+# [1.3.0](https://github.com/pleo-oss/pleo-spa-infra/compare/v1.2.0...v1.3.0) (2022-08-17)
+
+
+### Features
+
+* Translation add-on ([#5](https://github.com/pleo-oss/pleo-spa-infra/issues/5)) ([0f9af65](https://github.com/pleo-oss/pleo-spa-infra/commit/0f9af65a50c2a6d37f2c5375c527c0ec460915e5))
+
 # [1.2.0](https://github.com/pleo-oss/pleo-spa-infra/compare/v1.1.0...v1.2.0) (2022-06-28)
 
 
