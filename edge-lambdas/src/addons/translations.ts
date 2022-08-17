@@ -158,7 +158,7 @@ export const getTranslationVersion = async (s3: S3, config: Config) => {
         )
         return response
     } catch (error) {
-        console.error(error)
+        console.error('getTranslationVersion failed', error)
         // We never want this function to throw to avoid the app failing on any issues with the translations
         // deployments. We return an empty translation version here, which means the app will fall back to the
         // default language (which uses the app version instead of the translations version)
