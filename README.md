@@ -8,7 +8,7 @@ Single Page Application on AWS.
 👨‍🔧 This repo is lovingly stewarded by Pleo's Web Core team.
 
 🐛 Issues should be reported
-[in the repo](https://github.com/pleo-oss/pleo-spa-infra/issues) or via
+[in the repo](https://github.com/pleo-io/pleo-spa-infra/issues) or via
 [Stewards: Pleo SPA](https://linear.app/pleo/project/stewards-frontend-infrastructure-53a0a536f855)
 project on Linear (if you have access).
 
