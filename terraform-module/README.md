@@ -22,7 +22,7 @@ of those for details.
 
 ```hcl
 module "my_spa" {
-  source = ".git@github.com:pleo-oss/pleo-spa-infra.git//terraform-module?ref=<some_release>"
+  source = ".git@github.com:pleo-io/pleo-spa-infra.git//terraform-module?ref=<some_release>"
 
   app_name      = "my-spa-project"
   subdomain     = "my-spa"
