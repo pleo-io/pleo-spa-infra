@@ -64,7 +64,7 @@ behavior which they are associated with.
 
     2. Based on the above, fetch the cursor file (containing the current active app version) from
        the S3 origin bucket to figure out which HTML file to request from CDN. The cursor file is
-       updated as part of the [CD pipeline](https://github.com/pleo-oss/pleo-spa-cicd).
+       updated as part of the [CD pipeline](https://github.com/pleo-io/pleo-spa-cicd).
 
         For example, for the main branch requested we would fetch `deploys/main` file from S3, and
         for a feature branch `deploys/my-branch`. Then we read its contents, which would be some SHA
