@@ -226,7 +226,7 @@ const addPreloadHeader = ({ response, request, translationVersion, appVersion })
     // we use the version of the app. The default language is deployed together with the app, and not
     // separately, so it follows the app versioning and the translations versioning.
     const hash = language === DEFAULT_LANGUAGE ? appVersion : translationVersion;
-    headers = utils_setHeader(headers, 'Link', `</static/translations/${language}/messages.${hash}.js>; rel="preload"; as="script"; crossorigin`);
+    headers = utils_setHeader(headers, 'Link', `</static/translations/${language}/messages.${hash}.js>; rel="preload"; as="script"`);
     return Object.assign(Object.assign({}, response), { headers });
 };
 /**

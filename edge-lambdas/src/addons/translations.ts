@@ -137,7 +137,7 @@ export const addPreloadHeader = ({
     headers = setHeader(
         headers,
         'Link',
-        `</static/translations/${language}/messages.${hash}.js>; rel="preload"; as="script"; crossorigin`
+        `</static/translations/${language}/messages.${hash}.js>; rel="preload"; as="script"`
     )
 
     return {...response, headers}

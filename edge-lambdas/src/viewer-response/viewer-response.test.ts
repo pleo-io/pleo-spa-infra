@@ -332,7 +332,7 @@ const getTranslationHeaders = ({
             ? [
                   {
                       key: 'Link',
-                      value: `</static/translations/${language}/messages.${preloadHash}.js>; rel="preload"; as="script"; crossorigin`
+                      value: `</static/translations/${language}/messages.${preloadHash}.js>; rel="preload"; as="script"`
                   }
               ]
             : undefined
