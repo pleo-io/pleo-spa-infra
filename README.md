@@ -1,3 +1,5 @@
+**This repository has been archived, please use [spa-tools](https://github.com/pleo-io/spa-tools) instead.**
+
 <h1 align="center">
   🔋 Pleo SPA Infrastructure
 </h1>
